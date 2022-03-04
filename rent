@@ -1,0 +1,116 @@
+// ==UserScript==
+// @name         Pegaxy Rent Bot
+// @namespace    http://tampermonkey.net/
+// @version      0.121
+// @description  try to take over the world!
+// @author       You
+// @match        https://play.pegaxy.io/renting?tab=share-profit
+// @icon         https://www.google.com/s2/favicons?domain=pegaxy.io
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @license      MIT
+// ==/UserScript==
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+document.paused = false;
+document.porcentagem = 20;
+
+(async function () {
+	var porcHabilitada = false;
+	var achados = [];
+	var temModal = false;
+    var rented = false;
+    if(GM_getValue("porcentagem") != null)
+        document.porcentagem = parseInt(GM_getValue("porcentagem"))
+	var items = null;
+	await sleep(2000);
+	while (true) {
+		items = null;
+		if (
+			!porcHabilitada &&
+			document.getElementsByClassName("header-view")[0] != undefined
+		) {
+			var element = document.createElement("template");
+			element.innerHTML =
+				'<div class="list-filter"><button type="button" id="pauseButton" class="btn btn-link">⏸︎</button><span class="check-title">Porcentagem mínima para alugar: </span><input type="text" size="1" id="porcentagem" value="'+document.porcentagem+'" name="porcentagem"></div>'.trim();
+			var header = document.getElementsByClassName("header-view")[0];
+			for (let i = element.content.children.length; i > 0; --i)
+				header.append(element.content.children[0]);
+			document.getElementById("pauseButton").onclick = function () {
+				if (this.innerText == "⏸︎") {
+					this.innerText = "⏵︎";
+					document.paused = true;
+				} else {
+					this.innerText = "⏸︎";
+					document.paused = false;
+				}
+			};
+            document.getElementById("porcentagem").onchange = function () {
+				GM_setValue("porcentagem", this.value);
+			};
+			porcHabilitada = true;
+		}
+		if (
+			!document.paused &&
+			!temModal &&
+			porcHabilitada &&
+			(document.porcentagem = parseInt(document.getElementById("porcentagem").value)) !=
+			0
+		) {
+			var resultados = document.getElementsByClassName("button-game primary");
+			var filtrados = [];
+			var idEscolhido = 0;
+			var achadosFiltrados = [];
+			for (var i = 0; i < resultados.length; i++)
+				if (parseInt(resultados[i].innerText.split("%")[0]) >= document.porcentagem) {
+					filtrados.push(resultados[i]);
+					var id = resultados[
+						i
+					].parentElement.parentElement.parentElement.parentElement.innerText
+						.split(" ")[0]
+						.substring(1);
+					if (filtrados.length == 1) idEscolhido = id;
+					achadosFiltrados.push(id);
+				}
+
+			if (filtrados.length > 0 && !achados.includes(idEscolhido))
+				filtrados[0].click();
+
+			for (var j = 0; j < achadosFiltrados.length; j++)
+				if (!achados.includes(achadosFiltrados[j]))
+					achados.push(achadosFiltrados[j]);
+			temModal =
+				document.getElementsByClassName(
+					"modal-dialog modal-xl modal-dialog-centered"
+				).length > 0;
+			if (
+				!temModal &&
+				(items = document.getElementsByClassName("item-tab")).length > 0
+			) {
+				items[1].click();
+				items[2].click();
+			}
+            else {
+                rented = false;
+            }
+		}
+        else{
+            var botoes = document.getElementsByClassName("button-game primary");
+            if(botoes.length > 0 && !rented)
+                for(var k = 0; k < botoes.length; k++)
+                    if(botoes[k].innerText == "Rent"){
+                        botoes[k].click();
+                        rented = true;
+                    }
+
+        }
+		temModal =
+			document.getElementsByClassName(
+				"modal-dialog modal-xl modal-dialog-centered"
+			).length > 0;
+		await sleep(200);
+	}
+})();
